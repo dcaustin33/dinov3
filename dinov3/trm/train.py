@@ -7,12 +7,13 @@ import random
 import sys
 import time
 from pathlib import Path
+import tqdm
 
 import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from torchvision import datasets
+from datasets import load_dataset
 
 from dinov3.trm.args import get_args_parser, postprocess_args
 from dinov3.trm.imagenet_transform import get_eval_transforms
@@ -39,7 +40,7 @@ def set_seed(seed: int):
 
 def get_data_loaders(args):
     """
-    Create train and validation data loaders.
+    Create train and validation data loaders using HuggingFace datasets.
 
     Args:
         args: Parsed command-line arguments
@@ -53,15 +54,32 @@ def get_data_loaders(args):
         resolution=args.resolution
     )
 
-    # Create datasets
-    train_dir = os.path.join(args.data_root, 'train')
-    val_dir = os.path.join(args.data_root, 'val')
+    # Load dataset using HuggingFace imagefolder
+    print(f"Loading ImageNet dataset from {args.data_root}")
+    dataset = load_dataset(args.data_root)
 
-    print(f"Loading training data from {train_dir}")
-    train_dataset = datasets.ImageFolder(train_dir, transform=train_transform)
+    # Split into train and validation
+    train_dataset = dataset['train']
+    val_dataset = dataset['validation'] if 'validation' in dataset else dataset['val']
 
-    print(f"Loading validation data from {val_dir}")
-    val_dataset = datasets.ImageFolder(val_dir, transform=val_transform)
+    # Define transform functions for HuggingFace datasets
+    def train_transforms(examples):
+        examples['pixel_values'] = [train_transform(image.convert('RGB')) for image in examples['image']]
+        return examples
+
+    def val_transforms(examples):
+        examples['pixel_values'] = [val_transform(image.convert('RGB')) for image in examples['image']]
+        return examples
+
+    # Apply transforms
+    train_dataset = train_dataset.with_transform(train_transforms)
+    val_dataset = val_dataset.with_transform(val_transforms)
+
+    # Define collate function for HuggingFace datasets
+    def collate_fn(examples):
+        pixel_values = torch.stack([example['pixel_values'] for example in examples])
+        labels = torch.tensor([example['label'] for example in examples])
+        return pixel_values, labels
 
     # Create data loaders
     train_loader = DataLoader(
@@ -71,6 +89,7 @@ def get_data_loaders(args):
         num_workers=args.num_workers,
         pin_memory=args.pin_memory,
         drop_last=True,
+        collate_fn=collate_fn,
     )
 
     val_loader = DataLoader(
@@ -80,6 +99,7 @@ def get_data_loaders(args):
         num_workers=args.num_workers,
         pin_memory=args.pin_memory,
         drop_last=False,
+        collate_fn=collate_fn,
     )
 
     print(f"Train dataset: {len(train_dataset)} images")
@@ -454,7 +474,6 @@ def main():
         else:
             wandb.init(
                 project=args.wandb_project,
-                entity=args.wandb_entity,
                 name=args.experiment_name,
                 config=vars(args),
                 dir=str(args.save_path),
@@ -487,6 +506,12 @@ def main():
     # Build optimizer
     print("\nBuilding optimizer...")
     optimizer = build_optimizer(model, args)
+
+    # Print gradient clipping info
+    if args.grad_clip is not None and args.grad_clip > 0:
+        print(f"Gradient clipping enabled with max norm: {args.grad_clip}")
+    else:
+        print("Gradient clipping disabled")
 
     # Build learning rate scheduler
     scheduler = get_lr_schedule(optimizer, args, len(train_loader))

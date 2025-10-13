@@ -22,6 +22,7 @@ class SimpleMLPClassifier(nn.Module):
         num_classes: int,
         activation: nn.Module = nn.ReLU(),
         num_layers: int = 2,
+        grad_clip: float = None,
     ):
         """
         Args:
@@ -30,23 +31,25 @@ class SimpleMLPClassifier(nn.Module):
             num_classes: Number of output classes
             activation: Activation function
             num_layers: Number of hidden layers (minimum 1)
+            grad_clip: Gradient clipping max norm (None to disable)
         """
         super().__init__()
 
         self.num_layers = max(1, num_layers)
+        self.grad_clip = grad_clip
         layers = []
 
         # First layer
         layers.extend([
             nn.Linear(input_dim, hidden_dim),
-            activation,
+            activation(**{'hidden_size': hidden_dim}),
         ])
 
         # Hidden layers
         for _ in range(self.num_layers - 1):
             layers.extend([
                 nn.Linear(hidden_dim, hidden_dim),
-                activation,
+                activation(**{'hidden_size': hidden_dim}),
             ])
 
         # Output layer
@@ -72,6 +75,11 @@ class SimpleMLPClassifier(nn.Module):
         # Update weights
         optimizer.zero_grad()
         loss.backward()
+
+        # Clip gradients if specified
+        if self.grad_clip is not None and self.grad_clip > 0:
+            torch.nn.utils.clip_grad_norm_(self.parameters(), self.grad_clip)
+
         optimizer.step()
 
         # Compute accuracy
@@ -143,7 +151,8 @@ class TRMClassifier(nn.Module):
         activation: str = 'relu',
         use_simple_mlp: bool = False,
         mlp_num_layers: int = 2,
-        **backbone_kwargs
+        grad_clip: float = None,
+        **backbone_kwargs,
     ):
         """
         Args:
@@ -161,6 +170,7 @@ class TRMClassifier(nn.Module):
             activation: Activation function name
             use_simple_mlp: If True, use simple MLP instead of TRM (for baseline comparison)
             mlp_num_layers: Number of hidden layers in MLP (only used if use_simple_mlp=True)
+            grad_clip: Gradient clipping max norm (None to disable)
         """
         super().__init__()
 
@@ -206,7 +216,7 @@ class TRMClassifier(nn.Module):
             'relu': nn.ReLU(),
             'gelu': nn.GELU(),
             'silu': nn.SiLU(),
-            'swiglu': SwiGLU(self.feature_dim, 4.0),
+            'swiglu': SwiGLU,
         }
         activation_fn = activation_map.get(activation, nn.ReLU())
 
@@ -221,6 +231,7 @@ class TRMClassifier(nn.Module):
                 num_classes=num_classes,
                 activation=activation_fn,
                 num_layers=mlp_num_layers,
+                grad_clip=grad_clip,
             )
         else:
             print(f"Using TRM classifier with {n_supervision} supervision steps")
@@ -234,6 +245,7 @@ class TRMClassifier(nn.Module):
                 n_supervision=n_supervision,
                 n_latent_reasoning_steps=n_latent_reasoning_steps,
                 t_recursion_steps=t_recursion_steps,
+                grad_clip=grad_clip,
             )
 
         # Keep reference for backwards compatibility
@@ -361,6 +373,6 @@ def build_model(args):
         activation=args.activation,
         use_simple_mlp=args.use_simple_mlp,
         mlp_num_layers=args.mlp_num_layers,
+        grad_clip=args.grad_clip,
     )
-
     return model

@@ -32,3 +32,6 @@ wandb/
 # Training outputs
 output/
 results/
+
+imagenet/
+pretrained_checkpoints

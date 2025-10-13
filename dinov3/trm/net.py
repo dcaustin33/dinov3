@@ -34,7 +34,7 @@ def trunc_normal_init_(tensor: torch.Tensor, std: float = 1.0, lower: float = -2
     return tensor
 
 class SwiGLU(nn.Module):
-    def __init__(self, hidden_size: int, expansion: float):
+    def __init__(self, hidden_size: int, expansion: float=2.0):
         super().__init__()
         inter = _find_multiple(round(expansion * hidden_size * 2 / 3), 256)
 
@@ -70,7 +70,7 @@ class CastedLinear(nn.Module):
 
 class TRM(torch.nn.Module):
     def __init__(
-        self, 
+        self,
         input_cls_dim: int,
         latent_z_dim: int,
         latent_y_dim: int,
@@ -80,6 +80,7 @@ class TRM(torch.nn.Module):
         n_supervision: int = 6,
         n_latent_reasoning_steps: int = 3,
         t_recursion_steps: int = 2,
+        grad_clip: float = None,
     ):
         super().__init__()
         self.input_cls_dim = input_cls_dim
@@ -91,6 +92,7 @@ class TRM(torch.nn.Module):
         self.n_supervision = n_supervision
         self.n_latent_reasoning_steps = n_latent_reasoning_steps
         self.t_recursion_steps = t_recursion_steps
+        self.grad_clip = grad_clip
         
         self.in_dim = self.input_cls_dim + self.latent_z_dim + self.latent_y_dim
         self.hidden_dim = int(self.in_dim * self.hidden_dim_multiplier)
@@ -109,9 +111,9 @@ class TRM(torch.nn.Module):
     def _initialize_net(self):
         return torch.nn.Sequential(
             torch.nn.Linear(self.in_dim, self.hidden_dim),
-            self.activation,
+            self.activation(**{'hidden_size': self.hidden_dim}),
             torch.nn.Linear(self.hidden_dim, self.out_dim),
-            self.activation,
+            self.activation(**{'hidden_size': self.hidden_dim}),
         )
         
     def latent_recursion(self, x: torch.Tensor, y_latent: torch.Tensor, z_latent: torch.Tensor):
@@ -178,6 +180,11 @@ class TRM(torch.nn.Module):
             # Update weights
             optimizer.zero_grad()
             loss.backward()
+
+            # Clip gradients if specified
+            if self.grad_clip is not None and self.grad_clip > 0:
+                torch.nn.utils.clip_grad_norm_(self.parameters(), self.grad_clip)
+
             optimizer.step()
 
             total_loss += loss.item()
