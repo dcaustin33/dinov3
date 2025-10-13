@@ -60,6 +60,10 @@ def get_args_parser():
     trm_group.add_argument('--activation', type=str, default='swiglu',
                           choices=['relu', 'gelu', 'silu', 'swiglu'],
                           help='Activation function for TRM')
+    trm_group.add_argument('--use-simple-mlp', action='store_true',
+                          help='Use simple MLP instead of TRM for baseline comparison')
+    trm_group.add_argument('--mlp-num-layers', type=int, default=2,
+                          help='Number of hidden layers in MLP (only used with --use-simple-mlp)')
 
     # ====== Training Arguments ======
     train_group = parser.add_argument_group('Training')
