@@ -321,21 +321,36 @@ class DinoVisionTransformer(nn.Module):
         elif return_class_token and return_extra_tokens:
             return tuple(zip(outputs, class_tokens, extra_tokens))
 
-    def forward(self, *args, is_training: bool = False, **kwargs) -> List[Dict[str, Tensor]] | Tensor:
+    def forward(self, *args, is_training: bool = False, return_just_cls_token: bool = False, **kwargs) -> List[Dict[str, Tensor]] | Tensor:
         ret = self.forward_features(*args, **kwargs)
-        if is_training:
-            return ret
-        else:
+        if return_just_cls_token:
             return self.head(ret["x_norm_clstoken"])
+        else:
+            return ret
 
 
 def vit_small(patch_size=16, **kwargs):
     model = DinoVisionTransformer(
-        patch_size=patch_size,
+        img_size=224,
+        patch_size=16,
+        in_chans=3,
+        pos_embed_rope_base=100,
+        pos_embed_rope_normalize_coords="separate",
+        pos_embed_rope_rescale_coords=2,
+        pos_embed_rope_dtype="fp32",
         embed_dim=384,
         depth=12,
         num_heads=6,
         ffn_ratio=4,
+        qkv_bias=True,
+        drop_path_rate=0.0,
+        layerscale_init=1.0e-05,
+        norm_layer="layernormbf16",
+        ffn_layer="mlp",
+        ffn_bias=True,
+        proj_bias=True,
+        n_storage_tokens=4,
+        mask_k_bias=True,
         **kwargs,
     )
     return model
@@ -343,11 +358,26 @@ def vit_small(patch_size=16, **kwargs):
 
 def vit_base(patch_size=16, **kwargs):
     model = DinoVisionTransformer(
-        patch_size=patch_size,
-        embed_dim=768,
+        img_size=224,
+        patch_size=16,
+        in_chans=3,
+        pos_embed_rope_base=100,
+        pos_embed_rope_normalize_coords="separate",
+        pos_embed_rope_rescale_coords=2,
+        pos_embed_rope_dtype="fp32",
+        embed_dim=384,
         depth=12,
-        num_heads=12,
-        ffn_ratio=4,
+        num_heads=6,
+        ffn_ratio=6,
+        qkv_bias=True,
+        drop_path_rate=0.0,
+        layerscale_init=1.0e-05,
+        norm_layer="layernormbf16",
+        ffn_layer="swiglu",
+        ffn_bias=True,
+        proj_bias=True,
+        n_storage_tokens=4,
+        mask_k_bias=True,
         **kwargs,
     )
     return model
@@ -355,11 +385,26 @@ def vit_base(patch_size=16, **kwargs):
 
 def vit_large(patch_size=16, **kwargs):
     model = DinoVisionTransformer(
-        patch_size=patch_size,
+        img_size=224,
+        patch_size=16,
+        in_chans=3,
+        pos_embed_rope_base=100,
+        pos_embed_rope_normalize_coords="separate",
+        pos_embed_rope_rescale_coords=2,
+        pos_embed_rope_dtype="fp32",
         embed_dim=1024,
         depth=24,
         num_heads=16,
         ffn_ratio=4,
+        qkv_bias=True,
+        drop_path_rate=0.0,
+        layerscale_init=1.0e-05,
+        norm_layer="layernormbf16",
+        ffn_layer="mlp",
+        ffn_bias=True,
+        proj_bias=True,
+        n_storage_tokens=4,
+        mask_k_bias=True,
         **kwargs,
     )
     return model

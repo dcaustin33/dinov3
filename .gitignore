@@ -16,3 +16,19 @@ dist/
 
 # Ignore vscode directory
 .vscode/
+
+.venv/
+model_weights/
+
+# Training artifacts
+checkpoints/
+logs/
+runs/
+wandb/
+*.pth
+*.pt
+*.ckpt
+
+# Training outputs
+output/
+results/
