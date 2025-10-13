@@ -98,8 +98,8 @@ class TRM(torch.nn.Module):
         self.hidden_dim = int(self.in_dim * self.hidden_dim_multiplier)
         self.out_dim = self.num_classes
         
-        self.cls_head = torch.nn.Linear(self.in_dim, self.num_classes)
-        self.q_head = torch.nn.Linear(self.in_dim, 1)
+        self.cls_head = torch.nn.Linear(self.latent_y_dim, self.num_classes)
+        self.q_head = torch.nn.Linear(self.latent_y_dim, 1)
         self.net = self._initialize_net()
         
         self.embed_scale = math.sqrt(self.hidden_dim)
@@ -112,8 +112,8 @@ class TRM(torch.nn.Module):
         return torch.nn.Sequential(
             torch.nn.Linear(self.in_dim, self.hidden_dim),
             self.activation(**{'hidden_size': self.hidden_dim}),
-            torch.nn.Linear(self.hidden_dim, self.out_dim),
-            self.activation(**{'hidden_size': self.hidden_dim}),
+            torch.nn.Linear(self.hidden_dim, self.in_dim),
+            self.activation(**{'hidden_size': self.in_dim}),
         )
         
     def latent_recursion(self, x: torch.Tensor, y_latent: torch.Tensor, z_latent: torch.Tensor):
