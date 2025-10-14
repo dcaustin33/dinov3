@@ -57,7 +57,7 @@ class SimpleMLPClassifier(nn.Module):
 
         self.mlp = nn.Sequential(*layers)
 
-    def forward(self, x: torch.Tensor, y_true: torch.Tensor, optimizer: torch.optim.Optimizer) -> dict:
+    def forward(self, x: torch.Tensor, y_true: torch.Tensor, optimizer: torch.optim.Optimizer, scaler=None) -> dict:
         """
         Training forward pass with optimizer updates (matching TRM interface).
 
@@ -65,6 +65,7 @@ class SimpleMLPClassifier(nn.Module):
             x: [B, input_dim] input features
             y_true: [B] ground truth labels
             optimizer: optimizer instance for weight updates
+            scaler: GradScaler for AMP (optional)
 
         Returns:
             dict with metrics (matching TRM output format)
@@ -74,13 +75,27 @@ class SimpleMLPClassifier(nn.Module):
 
         # Update weights
         optimizer.zero_grad()
-        loss.backward()
 
-        # Clip gradients if specified
-        if self.grad_clip is not None and self.grad_clip > 0:
-            torch.nn.utils.clip_grad_norm_(self.parameters(), self.grad_clip)
+        if scaler is not None:
+            # Use gradient scaling for AMP
+            scaler.scale(loss).backward()
 
-        optimizer.step()
+            # Clip gradients if specified (unscale first)
+            if self.grad_clip is not None and self.grad_clip > 0:
+                scaler.unscale_(optimizer)
+                torch.nn.utils.clip_grad_norm_(self.parameters(), self.grad_clip)
+
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            # Standard backward pass without AMP
+            loss.backward()
+
+            # Clip gradients if specified
+            if self.grad_clip is not None and self.grad_clip > 0:
+                torch.nn.utils.clip_grad_norm_(self.parameters(), self.grad_clip)
+
+            optimizer.step()
 
         # Compute accuracy
         predictions = torch.argmax(logits, dim=-1)
@@ -274,7 +289,7 @@ class TRMClassifier(nn.Module):
 
         return features
 
-    def forward(self, images: torch.Tensor, labels: torch.Tensor, optimizer: torch.optim.Optimizer) -> dict:
+    def forward(self, images: torch.Tensor, labels: torch.Tensor, optimizer: torch.optim.Optimizer, scaler=None) -> dict:
         """
         Training forward pass.
 
@@ -282,6 +297,7 @@ class TRMClassifier(nn.Module):
             images: [B, C, H, W] input images
             labels: [B] ground truth labels
             optimizer: optimizer instance for classifier weight updates
+            scaler: GradScaler for AMP (optional)
 
         Returns:
             dict of metrics from classifier.forward()
@@ -290,7 +306,7 @@ class TRMClassifier(nn.Module):
         features = self.extract_features(images)
 
         # Forward through classifier (TRM or MLP) with optimizer updates
-        metrics = self.classifier.forward(features, labels, optimizer)
+        metrics = self.classifier.forward(features, labels, optimizer, scaler)
 
         return metrics
 

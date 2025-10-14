@@ -24,6 +24,9 @@ def get_args_parser():
                            help='Number of data loading workers')
     data_group.add_argument('--pin-memory', action='store_true', default=True,
                            help='Pin memory for data loading')
+    data_group.add_argument('--images_dtype', type=str, default='float16',
+                            choices=['float16', 'float32','bfloat16'],
+                            help='Dtype of images')
 
     # ====== Transform Arguments ======
     transform_group = parser.add_argument_group('Data Transforms')
@@ -146,6 +149,13 @@ def postprocess_args(args):
     elif args.device == 'mps' and not torch.backends.mps.is_available():
         print("Warning: MPS not available, falling back to CPU")
         args.device = 'cpu'
+        
+    if args.images_dtype == 'float16':
+        args.images_dtype = torch.float16
+    elif args.images_dtype == 'float32':
+        args.images_dtype = torch.float32
+    elif args.images_dtype == 'bfloat16':
+        args.images_dtype = torch.bfloat16
 
     return args
 

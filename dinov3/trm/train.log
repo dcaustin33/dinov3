@@ -4,8 +4,108 @@
   warnings.warn(
 wandb: Currently logged in as: dcaustin33 to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
 wandb: Tracking run with wandb version 0.22.2
-wandb: Run data is saved locally in checkpoints/mlp_imagenet/wandb/run-20251013_233738-dewyijo4
+wandb: Run data is saved locally in checkpoints/mlp_imagenet/wandb/run-20251014_162853-dam582sc
 wandb: Run `wandb offline` to turn off syncing.
 wandb: Syncing run mlp_imagenet
 wandb: ⭐️ View project at https://wandb.ai/dcaustin33/trm-imagenet
-wandb: 🚀 View run at https://wandb.ai/dcaustin33/trm-imagenet/runs/dewyijo4
+wandb: 🚀 View run at https://wandb.ai/dcaustin33/trm-imagenet/runs/dam582sc
+/home/derek_austin/dinov3/.venv/lib/python3.12/site-packages/torch/utils/data/dataloader.py:627: UserWarning: This DataLoader will create 14 worker processes in total. Our suggested max number of worker in current system is 12, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
+  warnings.warn(
+
+================================================================================
+Training Configuration
+================================================================================
+  activation: swiglu
+  amp: True
+  backbone: vit_small
+  backbone_checkpoint: /home/derek_austin/dinov3/pretrained_checkpoints/dinov3_vits16_pretrain.pth
+  batch_size: 256
+  data_root: /home/derek_austin/dinov3/imagenet
+  dataset: imagenet
+  device: cuda
+  epochs: 10
+  eval_batch_size: 256
+  eval_freq: 1
+  experiment_name: mlp_imagenet
+  freeze_backbone: True
+  grad_clip: 1.0
+  hidden_dim_multiplier: 2.0
+  latent_y_dim: 512
+  latent_z_dim: 512
+  learning_rate: 0.0001
+  log_interval: 50
+  mlp_num_layers: 1
+  momentum: 0.9
+  n_latent_reasoning_steps: 3
+  n_supervision: 4
+  num_classes: 1000
+  num_workers: 14
+  optimizer: adamw
+  patch_size: 14
+  pin_memory: True
+  resolution: 512
+  resume: None
+  save_dir: ./checkpoints
+  save_freq: 2
+  save_path: checkpoints/mlp_imagenet
+  seed: 42
+  t_recursion_steps: 2
+  use_simple_mlp: True
+  use_wandb: True
+  wandb_entity: None
+  wandb_project: trm-imagenet
+  warmup_epochs: 1
+  weight_decay: 0.0
+================================================================================
+
+Saved configuration to checkpoints/mlp_imagenet/config.json
+
+Initialized wandb: mlp_imagenet
+  Project: trm-imagenet
+  URL: https://wandb.ai/dcaustin33/trm-imagenet/runs/dam582sc
+
+Creating data loaders...
+[Warning] Custom resolution 512 used instead of default 448 (for 1024 tokens).
+Loading ImageNet dataset from /home/derek_austin/dinov3/imagenet
+Train dataset: 1281167 images
+Val dataset: 50000 images
+Train batches: 5004
+Val batches: 196
+
+Building model...
+Loading backbone checkpoint from /home/derek_austin/dinov3/pretrained_checkpoints/dinov3_vits16_pretrain.pth
+Freezing backbone parameters
+Using simple MLP classifier with 1 hidden layers
+Total parameters: 25,025,128
+Trainable parameters: 3,423,976
+
+Building optimizer...
+Optimizing only TRM parameters (backbone frozen)
+mlp.0.weight torch.Size([768, 384])
+mlp.0.bias torch.Size([768])
+mlp.1.gate_up_proj.weight torch.Size([2048, 768])
+mlp.1.down_proj.weight torch.Size([768, 1024])
+mlp.2.weight torch.Size([1000, 768])
+mlp.2.bias torch.Size([1000])
+> /home/derek_austin/dinov3/dinov3/trm/train.py(140)build_optimizer()
+-> if args.optimizer == 'adam':
+(Pdb) --KeyboardInterrupt--
+(Pdb) --KeyboardInterrupt--
+(Pdb) Traceback (most recent call last):
+  File "/home/derek_austin/dinov3/dinov3/trm/train.py", line 585, in <module>
+    main()
+  File "/home/derek_austin/dinov3/dinov3/trm/train.py", line 513, in main
+    optimizer = build_optimizer(model, args)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/derek_austin/dinov3/dinov3/trm/train.py", line 140, in build_optimizer
+    if args.optimizer == 'adam':
+       ^^^^
+  File "/home/derek_austin/.pyenv/versions/3.12.12/lib/python3.12/bdb.py", line 100, in trace_dispatch
+    return self.dispatch_line(frame)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/derek_austin/.pyenv/versions/3.12.12/lib/python3.12/bdb.py", line 125, in dispatch_line
+    if self.quitting: raise BdbQuit
+                      ^^^^^^^^^^^^^
+bdb.BdbQuit
+[1;34mwandb[0m: 
+[1;34mwandb[0m: 🚀 View run [33mmlp_imagenet[0m at: [34m[0m

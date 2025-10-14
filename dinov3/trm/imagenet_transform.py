@@ -29,7 +29,7 @@ def get_eval_transforms(patch_size: int = 14, resolution: int | None = None):
     train_transform = transforms.Compose([
         transforms.RandomResizedCrop(
             side,
-            scale=(0.08, 1.0),
+            scale=(0.95, 1.0),
             ratio=(3/4, 4/3),
             interpolation=InterpolationMode.BICUBIC,
             antialias=True,

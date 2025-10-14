@@ -126,11 +126,15 @@ def build_optimizer(model, args):
     """
     # Only optimize TRM parameters (backbone may be frozen)
     if args.freeze_backbone:
-        params = model.trm.parameters()
+        params = model.classifier.parameters()
         print("Optimizing only TRM parameters (backbone frozen)")
     else:
         params = model.parameters()
         print("Optimizing both backbone and TRM parameters")
+        
+    # print the model parameters
+    for name, param in model.classifier.named_parameters():
+        print(name, param.shape)
 
     if args.optimizer == 'adam':
         optimizer = torch.optim.Adam(
@@ -221,9 +225,11 @@ def train_epoch(model, train_loader, optimizer, scheduler, epoch, args, scaler=N
 
         # Forward pass (TRM handles optimizer updates internally)
         if args.amp and args.device == 'cuda':
-            with torch.cuda.amp.autocast():
-                metrics = model.forward(images, labels, optimizer)
+            with torch.amp.autocast(device_type=args.device, dtype=args.images_dtype):
+                metrics = model.forward(images, labels, optimizer, scaler)
         else:
+            images = images.to(dtype=args.images_dtype)
+            model = model.to(dtype=args.images_dtype)
             metrics = model.forward(images, labels, optimizer)
 
         # Update learning rate if using scheduler
@@ -492,6 +498,7 @@ def main():
     model = build_model(args)
     device = torch.device(args.device)
     model = model.to(device)
+    model = model.to(dtype=args.images_dtype)
 
     # Count parameters
     total_params = sum(p.numel() for p in model.parameters())

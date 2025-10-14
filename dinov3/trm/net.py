@@ -67,6 +67,11 @@ class CastedLinear(nn.Module):
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         return F.linear(input, self.weight.to(input.dtype), bias=self.bias.to(input.dtype) if self.bias is not None else None)
 
+# def debug_hook(module, grad_input, grad_output):
+#     print(f"\n[Hook on {module.__class__.__name__}]")
+#     print(f"grad_input: {[g.shape if g is not None else None for g in grad_input]}")
+#     print(f"grad_output: {[g.shape if g is not None else None for g in grad_output]}")
+
 
 class TRM(torch.nn.Module):
     def __init__(
@@ -98,22 +103,26 @@ class TRM(torch.nn.Module):
         self.hidden_dim = int(self.in_dim * self.hidden_dim_multiplier)
         self.out_dim = self.num_classes
         
-        self.cls_head = torch.nn.Linear(self.latent_y_dim, self.num_classes)
-        self.q_head = torch.nn.Linear(self.latent_y_dim, 1)
-        self.net = self._initialize_net()
+        self.cls_head = CastedLinear(self.latent_y_dim, self.num_classes, bias=False)
+        self.q_head = CastedLinear(self.latent_y_dim, 1, bias=False)
+        self._initialize_net()
         
         self.embed_scale = math.sqrt(self.hidden_dim)
-        embed_init_std = 1.0 / self.embed_scale
+        embed_init_std = 1.0 / self.hidden_dim
         
         self.latent_y_embedding = nn.Parameter(trunc_normal_init_(torch.empty((1, self.latent_y_dim)), std=embed_init_std))
         self.latent_z_embedding = nn.Parameter(trunc_normal_init_(torch.empty((1, self.latent_z_dim)), std=embed_init_std))
         
-    def _initialize_net(self):
+    def _create_layer(self, in_dim, out_dim):
         return torch.nn.Sequential(
-            torch.nn.Linear(self.in_dim, self.hidden_dim),
-            self.activation(**{'hidden_size': self.hidden_dim}),
-            torch.nn.Linear(self.hidden_dim, self.in_dim),
-            self.activation(**{'hidden_size': self.in_dim}),
+            CastedLinear(in_dim, out_dim, bias=False),
+            self.activation(**{'hidden_size': out_dim}),
+        )
+        
+    def _initialize_net(self):
+        self.net = nn.Sequential(
+            self._create_layer(self.in_dim, self.hidden_dim),
+            self._create_layer(self.hidden_dim, self.in_dim),
         )
         
     def latent_recursion(self, x: torch.Tensor, y_latent: torch.Tensor, z_latent: torch.Tensor):
@@ -123,19 +132,24 @@ class TRM(torch.nn.Module):
         input_tensor = torch.cat([x, y_latent, z_latent], dim=-1)
         for _ in range(self.n_latent_reasoning_steps):
             output_tensor = self.net(input_tensor)
-            input_tensor = output_tensor
+            input_tensor = output_tensor + input_tensor
         y = output_tensor[:, x_dim:x_dim+y_latent_dim]
         z = output_tensor[:, x_dim+y_latent_dim:x_dim+y_latent_dim+z_latent_dim]
         return y, z
     
     def deep_recursion(self, x: torch.Tensor, y_latent: torch.Tensor, z_latent: torch.Tensor):
-        with torch.no_grad():
-            for _ in range(self.t_recursion_steps - 1):
-                y_latent, z_latent = self.latent_recursion(x, y_latent, z_latent)
+        # Don't modify y_latent and z_latent in place within no_grad
+        for _ in range(self.t_recursion_steps - 1):
+            with torch.no_grad():
+                y_latent_new, z_latent_new = self.latent_recursion(x, y_latent.detach(), z_latent.detach())
+            y_latent = y_latent_new
+            z_latent = z_latent_new
         y_latent, z_latent = self.latent_recursion(x, y_latent, z_latent)
-        return (y_latent.detach(), z_latent.detach()), self.cls_head(y_latent), self.q_head(y_latent)
+        cls_logits = self.cls_head(y_latent)
+        q_logits = self.q_head(y_latent)
+        return y_latent.detach(), z_latent.detach(), cls_logits, q_logits
         
-    def forward(self, x: torch.Tensor, y_true: torch.Tensor, optimizer: torch.optim.Optimizer) -> dict:
+    def forward(self, x: torch.Tensor, y_true: torch.Tensor, optimizer: torch.optim.Optimizer, scaler=None) -> dict:
         """
         Training forward pass with optimizer updates.
 
@@ -143,6 +157,7 @@ class TRM(torch.nn.Module):
             x: [bs, x_dim] - input features
             y_true: [bs] - ground truth labels
             optimizer: optimizer instance for weight updates
+            scaler: GradScaler for AMP (optional)
 
         Returns:
             dict with keys:
@@ -164,12 +179,13 @@ class TRM(torch.nn.Module):
 
         # Keep original indices to track stopping layers
         original_indices = torch.arange(batch_size, device=x.device)
+        weights_before = self.net[0][0].weight.clone()
 
         for step in range(self.n_supervision):
             current_batch_size = x.shape[0]
             samples_per_layer.append(current_batch_size)
 
-            (y_latent, z_latent), cls_logits, q_logits = self.deep_recursion(x, y_latent, z_latent)
+            y_latent, z_latent, cls_logits, q_logits = self.deep_recursion(x, y_latent, z_latent)
             y_hat = torch.argmax(cls_logits, dim=-1)
 
             # Compute losses
@@ -179,14 +195,27 @@ class TRM(torch.nn.Module):
 
             # Update weights
             optimizer.zero_grad()
-            loss.backward()
 
-            # Clip gradients if specified
-            if self.grad_clip is not None and self.grad_clip > 0:
-                torch.nn.utils.clip_grad_norm_(self.parameters(), self.grad_clip)
+            if scaler is not None:
+                # Use gradient scaling for AMP
+                scaler.scale(loss).backward()
 
-            optimizer.step()
+                # Clip gradients if specified (unscale first)
+                if self.grad_clip is not None and self.grad_clip > 0:
+                    scaler.unscale_(optimizer)
+                    torch.nn.utils.clip_grad_norm_(self.parameters(), self.grad_clip)
 
+                scaler.step(optimizer)
+                scaler.update()
+            else:
+                # Standard backward pass without AMP
+                loss.backward()
+
+                # Clip gradients if specified
+                if self.grad_clip is not None and self.grad_clip > 0:
+                    torch.nn.utils.clip_grad_norm_(self.parameters(), self.grad_clip)
+
+                optimizer.step()
             total_loss += loss.item()
 
             # Track accuracy on final layer
@@ -279,6 +308,7 @@ class TRM(torch.nn.Module):
             # Compute losses and accuracy for this layer
             cls_loss = F.cross_entropy(cls_logits, y_true)
             q_loss = F.binary_cross_entropy_with_logits(q_logits.squeeze(-1), (y_hat == y_true).float())
+            print("cls_loss", cls_loss.item(), "q_loss", q_loss.item())
             loss = cls_loss + q_loss
 
             total_loss += loss.item()
