@@ -1,6 +1,6 @@
 python train.py \
     --data-root /home/derek_austin/dinov3/imagenet \
-    --num-workers 14 \
+    --num-workers 12 \
     --resolution 512 \
     --backbone vit_small \
     --backbone-checkpoint /home/derek_austin/dinov3/pretrained_checkpoints/dinov3_vits16_pretrain.pth \
@@ -29,4 +29,36 @@ python train.py \
     --wandb-project trm-imagenet \
     --device cuda \
     --seed 42 \
-    --amp;
+    --amp \
+    --images_dtype bfloat16 > train_trm.log 2>&1;
+
+
+python train.py \
+    --data-root /home/derek_austin/dinov3/imagenet \
+    --num-workers 14 \
+    --resolution 512 \
+    --backbone vit_small \
+    --backbone-checkpoint /home/derek_austin/dinov3/pretrained_checkpoints/dinov3_vits16_pretrain.pth \
+    --freeze-backbone \
+    --activation swiglu \
+    --use-simple-mlp \
+    --mlp-num-layers 1 \
+    --epochs 10 \
+    --batch-size 256 \
+    --eval-batch-size 256 \
+    --lr 1e-4 \
+    --weight-decay 0.0 \
+    --optimizer adamw \
+    --warmup-epochs 1 \
+    --grad-clip 1.0 \
+    --save-dir ./checkpoints \
+    --experiment-name mlp_imagenet \
+    --save-freq 2 \
+    --eval-freq 1 \
+    --log-interval 50 \
+    --use-wandb \
+    --wandb-project trm-imagenet \
+    --device cuda \
+    --seed 42 \
+    --amp \
+    --images_dtype bfloat16 > train_mlp.log 2>&1;

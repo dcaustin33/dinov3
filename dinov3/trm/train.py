@@ -228,8 +228,6 @@ def train_epoch(model, train_loader, optimizer, scheduler, epoch, args, scaler=N
             with torch.amp.autocast(device_type=args.device, dtype=args.images_dtype):
                 metrics = model.forward(images, labels, optimizer, scaler)
         else:
-            images = images.to(dtype=args.images_dtype)
-            model = model.to(dtype=args.images_dtype)
             metrics = model.forward(images, labels, optimizer)
 
         # Update learning rate if using scheduler
@@ -498,7 +496,6 @@ def main():
     model = build_model(args)
     device = torch.device(args.device)
     model = model.to(device)
-    model = model.to(dtype=args.images_dtype)
 
     # Count parameters
     total_params = sum(p.numel() for p in model.parameters())
