@@ -140,8 +140,9 @@ class TRM(torch.nn.Module):
     def deep_recursion(self, x: torch.Tensor, y_latent: torch.Tensor, z_latent: torch.Tensor):
         # Don't modify y_latent and z_latent in place within no_grad
         for _ in range(self.t_recursion_steps - 1):
-            with torch.no_grad():
-                y_latent_new, z_latent_new = self.latent_recursion(x, y_latent.detach(), z_latent.detach())
+            self.net.requires_grad_(False)
+            y_latent_new, z_latent_new = self.latent_recursion(x, y_latent.detach(), z_latent.detach())
+            self.net.requires_grad_(True)
             y_latent = y_latent_new
             z_latent = z_latent_new
         y_latent, z_latent = self.latent_recursion(x, y_latent, z_latent)

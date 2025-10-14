@@ -8,9 +8,6 @@ dist/
 
 **/notebooks
 
-# Ignore shell scripts
-*.sh
-
 # Ignore swap files
 *.swp
 
