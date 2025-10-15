@@ -190,7 +190,7 @@ def get_lr_schedule(optimizer, args, steps_per_epoch):
     return None
 
 
-def train_epoch(model, train_loader, optimizer, scheduler, epoch, args, scaler=None):
+def train_epoch(model, train_loader, optimizer, scheduler, epoch, args, scaler=None, wandb_logger=None):
     """
     Train for one epoch.
 
@@ -259,9 +259,9 @@ def train_epoch(model, train_loader, optimizer, scheduler, epoch, args, scaler=N
                   f"Speed: {batches_per_sec:.2f} batch/s")
 
             # Log to wandb
-            if args.use_wandb and WANDB_AVAILABLE:
+            if wandb_logger is not None:
                 global_step = (epoch - 1) * len(train_loader) + batch_idx + 1
-                wandb.log({
+                wandb_logger.log({
                     'train/batch_loss': avg_loss,
                     'train/batch_accuracy': avg_acc,
                     'train/batch_stopping_layer': avg_stop,
@@ -281,7 +281,7 @@ def train_epoch(model, train_loader, optimizer, scheduler, epoch, args, scaler=N
 
 
 @torch.no_grad()
-def validate(model, val_loader, epoch, args):
+def validate(model, val_loader, epoch, args, wandb_logger):
     """
     Validate on validation set.
 
@@ -357,7 +357,7 @@ def validate(model, val_loader, epoch, args):
     print(f"{'='*80}\n")
 
     # Log to wandb
-    if args.use_wandb and WANDB_AVAILABLE:
+    if wandb_logger is not None:
         wandb_log = {
             'val/loss': avg_loss,
             'val/accuracy': avg_layer_accuracies[-1],
@@ -374,7 +374,7 @@ def validate(model, val_loader, epoch, args):
         for layer_idx, count in enumerate(stopping_distribution):
             wandb_log[f'val/stopping_at_layer_{layer_idx + 1}'] = count
 
-        wandb.log(wandb_log, step=epoch)
+        wandb_logger.log(wandb_log, step=epoch)
 
     return val_metrics
 
@@ -476,16 +476,16 @@ def main():
             print("Continuing without wandb logging...\n")
             args.use_wandb = False
         else:
-            wandb.init(
+            wandb_logger = wandb.init(
                 project=args.wandb_project,
                 name=args.experiment_name,
                 config=vars(args),
                 dir=str(args.save_path),
                 resume='allow' if args.resume else None,
             )
-            print(f"Initialized wandb: {wandb.run.name}")
+            print(f"Initialized wandb: {wandb_logger.run.name}")
             print(f"  Project: {args.wandb_project}")
-            print(f"  URL: {wandb.run.url}\n")
+            print(f"  URL: {wandb_logger.run.url}\n")
 
     # Create data loaders
     print("Creating data loaders...")
@@ -505,7 +505,7 @@ def main():
 
     # Watch model with wandb
     if args.use_wandb and WANDB_AVAILABLE:
-        wandb.watch(model, log='all', log_freq=args.log_interval)
+        wandb_logger.watch(model, log='all', log_freq=args.log_interval)
 
     # Build optimizer
     print("\nBuilding optimizer...")
@@ -523,7 +523,10 @@ def main():
         print(f"Using warmup for {args.warmup_epochs} epochs + cosine decay")
 
     # AMP scaler
-    scaler = torch.cuda.amp.GradScaler() if args.amp and args.device == 'cuda' else None
+    if args.amp and args.device == 'cuda' and args.images_dtype == 'torch.float16':
+        scaler = torch.amp.GradScaler('cuda')
+    else:
+        scaler = None
 
     # Resume from checkpoint if specified
     start_epoch = 1
@@ -541,11 +544,11 @@ def main():
         print("-" * 80)
 
         # Train for one epoch
-        train_metrics = train_epoch(model, train_loader, optimizer, scheduler, epoch, args, scaler)
+        train_metrics = train_epoch(model, train_loader, optimizer, scheduler, epoch, args, scaler, wandb_logger)
 
         # Log epoch training metrics to wandb
         if args.use_wandb and WANDB_AVAILABLE:
-            wandb.log({
+            wandb_logger.log({
                 'train/epoch_loss': train_metrics['train/loss'],
                 'train/epoch_accuracy': train_metrics['train/accuracy'],
                 'train/epoch_stopping_layer': train_metrics['train/avg_stopping_layer'],
@@ -554,7 +557,7 @@ def main():
 
         # Validate
         if epoch % args.eval_freq == 0:
-            val_metrics = validate(model, val_loader, epoch, args)
+            val_metrics = validate(model, val_loader, epoch, args, wandb_logger)
 
             # Check if best model
             current_acc = val_metrics['val/accuracy']
@@ -573,11 +576,11 @@ def main():
     print("="*80)
 
     # Log final summary to wandb
-    if args.use_wandb and WANDB_AVAILABLE:
-        wandb.run.summary['best_accuracy'] = best_acc
-        wandb.run.summary['final_epoch'] = args.epochs
-        wandb.finish()
-        print("\nWandb run finished and logged.")
+    if wandb_logger is not None:
+        wandb_logger.run.summary['best_accuracy'] = best_acc
+        wandb_logger.run.summary['final_epoch'] = args.epochs
+        wandb_logger.finish()
+        print(f"\nWandb run finished and logged. {wandb_logger.run.name}")
 
 
 if __name__ == '__main__':

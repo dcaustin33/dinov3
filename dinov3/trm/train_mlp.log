@@ -4,11 +4,13 @@
   warnings.warn(
 wandb: Currently logged in as: dcaustin33 to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
 wandb: Tracking run with wandb version 0.22.2
-wandb: Run data is saved locally in checkpoints/trm_imagenet/wandb/run-20251014_220612-9eano0wm
+wandb: Run data is saved locally in checkpoints/mlp_imagenet/wandb/run-20251015_103736-yfbo4lec
 wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run trm_imagenet
+wandb: Syncing run mlp_imagenet
 wandb: ⭐️ View project at https://wandb.ai/dcaustin33/trm-imagenet
-wandb: 🚀 View run at https://wandb.ai/dcaustin33/trm-imagenet/runs/9eano0wm
+wandb: 🚀 View run at https://wandb.ai/dcaustin33/trm-imagenet/runs/yfbo4lec
+/home/derek_austin/dinov3/.venv/lib/python3.12/site-packages/torch/utils/data/dataloader.py:627: UserWarning: This DataLoader will create 14 worker processes in total. Our suggested max number of worker in current system is 12, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
+  warnings.warn(
 /home/derek_austin/dinov3/dinov3/trm/train.py:526: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
   scaler = torch.cuda.amp.GradScaler() if args.amp and args.device == 'cuda' else None
 
@@ -26,21 +28,21 @@ Training Configuration
   epochs: 10
   eval_batch_size: 256
   eval_freq: 1
-  experiment_name: trm_imagenet
+  experiment_name: mlp_imagenet
   freeze_backbone: True
   grad_clip: 1.0
-  hidden_dim_multiplier: 1.0
+  hidden_dim_multiplier: 2.0
   images_dtype: torch.bfloat16
-  latent_y_dim: 256
-  latent_z_dim: 256
+  latent_y_dim: 512
+  latent_z_dim: 512
   learning_rate: 0.0001
   log_interval: 50
-  mlp_num_layers: 2
+  mlp_num_layers: 1
   momentum: 0.9
   n_latent_reasoning_steps: 3
   n_supervision: 4
   num_classes: 1000
-  num_workers: 12
+  num_workers: 14
   optimizer: adamw
   patch_size: 14
   pin_memory: True
@@ -48,10 +50,10 @@ Training Configuration
   resume: None
   save_dir: ./checkpoints
   save_freq: 2
-  save_path: checkpoints/trm_imagenet
+  save_path: checkpoints/mlp_imagenet
   seed: 42
   t_recursion_steps: 2
-  use_simple_mlp: False
+  use_simple_mlp: True
   use_wandb: True
   wandb_entity: None
   wandb_project: trm-imagenet
@@ -59,11 +61,11 @@ Training Configuration
   weight_decay: 0.0
 ================================================================================
 
-Saved configuration to checkpoints/trm_imagenet/config.json
+Saved configuration to checkpoints/mlp_imagenet/config.json
 
-Initialized wandb: trm_imagenet
+Initialized wandb: mlp_imagenet
   Project: trm-imagenet
-  URL: https://wandb.ai/dcaustin33/trm-imagenet/runs/9eano0wm
+  URL: https://wandb.ai/dcaustin33/trm-imagenet/runs/yfbo4lec
 
 Creating data loaders...
 [Warning] Custom resolution 512 used instead of default 448 (for 1024 tokens).
@@ -76,22 +78,18 @@ Val batches: 196
 Building model...
 Loading backbone checkpoint from /home/derek_austin/dinov3/pretrained_checkpoints/dinov3_vits16_pretrain.pth
 Freezing backbone parameters
-Using TRM classifier with 4 supervision steps
-Total parameters: 30,344,832
-Trainable parameters: 8,743,680
+Using simple MLP classifier with 1 hidden layers
+Total parameters: 25,025,128
+Trainable parameters: 3,423,976
 
 Building optimizer...
 Optimizing only TRM parameters (backbone frozen)
-latent_y_embedding torch.Size([1, 256])
-latent_z_embedding torch.Size([1, 256])
-cls_head.weight torch.Size([1000, 256])
-q_head.weight torch.Size([1, 256])
-net.0.0.weight torch.Size([896, 896])
-net.0.1.gate_up_proj.weight torch.Size([2560, 896])
-net.0.1.down_proj.weight torch.Size([896, 1280])
-net.1.0.weight torch.Size([896, 896])
-net.1.1.gate_up_proj.weight torch.Size([2560, 896])
-net.1.1.down_proj.weight torch.Size([896, 1280])
+mlp.0.weight torch.Size([768, 384])
+mlp.0.bias torch.Size([768])
+mlp.1.gate_up_proj.weight torch.Size([2048, 768])
+mlp.1.down_proj.weight torch.Size([768, 1024])
+mlp.2.weight torch.Size([1000, 768])
+mlp.2.bias torch.Size([1000])
 Gradient clipping enabled with max norm: 1.0
 Using warmup for 1 epochs + cosine decay
 
@@ -102,41 +100,6 @@ Starting Training
 
 Epoch 1/10
 --------------------------------------------------------------------------------
-/home/derek_austin/dinov3/.venv/lib/python3.12/site-packages/PIL/TiffImagePlugin.py:760: UserWarning: Metadata Warning, tag 274 had too many entries: 4, expected 1
-  warnings.warn(
-/home/derek_austin/dinov3/.venv/lib/python3.12/site-packages/PIL/TiffImagePlugin.py:950: UserWarning: Corrupt EXIF data.  Expecting to read 2 bytes but only got 0. 
-  warnings.warn(str(msg))
-Epoch [1/10] Batch [50/5004] Loss: 7.5990 Acc: 0.0008 Stop@: 2.59 LR: 0.000001 Speed: 1.26 batch/s
-Epoch [1/10] Batch [100/5004] Loss: 7.5990 Acc: 0.0008 Stop@: 2.80 LR: 0.000002 Speed: 1.42 batch/s
-Epoch [1/10] Batch [150/5004] Loss: 7.5988 Acc: 0.0010 Stop@: 3.07 LR: 0.000003 Speed: 1.48 batch/s
-Epoch [1/10] Batch [200/5004] Loss: 7.5986 Acc: 0.0013 Stop@: 3.29 LR: 0.000004 Speed: 1.50 batch/s
-Epoch [1/10] Batch [250/5004] Loss: 7.5978 Acc: 0.0016 Stop@: 3.44 LR: 0.000005 Speed: 1.55 batch/s
-Epoch [1/10] Batch [300/5004] Loss: nan Acc: 0.0016 Stop@: 3.53 LR: 0.000006 Speed: 1.57 batch/s
-Epoch [1/10] Batch [350/5004] Loss: nan Acc: 0.0014 Stop@: 3.28 LR: 0.000007 Speed: 1.58 batch/s
-Epoch [1/10] Batch [400/5004] Loss: nan Acc: 0.0013 Stop@: 3.00 LR: 0.000008 Speed: 1.59 batch/s
-Epoch [1/10] Batch [450/5004] Loss: nan Acc: 0.0011 Stop@: 2.77 LR: 0.000009 Speed: 1.59 batch/s
-Epoch [1/10] Batch [500/5004] Loss: nan Acc: 0.0010 Stop@: 2.60 LR: 0.000010 Speed: 1.60 batch/s
-Epoch [1/10] Batch [550/5004] Loss: nan Acc: 0.0009 Stop@: 2.45 LR: 0.000011 Speed: 1.60 batch/s
-Epoch [1/10] Batch [600/5004] Loss: nan Acc: 0.0008 Stop@: 2.33 LR: 0.000012 Speed: 1.59 batch/s
-Epoch [1/10] Batch [650/5004] Loss: nan Acc: 0.0008 Stop@: 2.23 LR: 0.000013 Speed: 1.59 batch/s
-Epoch [1/10] Batch [700/5004] Loss: nan Acc: 0.0007 Stop@: 2.14 LR: 0.000014 Speed: 1.59 batch/s
-Epoch [1/10] Batch [750/5004] Loss: nan Acc: 0.0007 Stop@: 2.06 LR: 0.000015 Speed: 1.59 batch/s
-Epoch [1/10] Batch [800/5004] Loss: nan Acc: 0.0006 Stop@: 2.00 LR: 0.000016 Speed: 1.59 batch/s
-Epoch [1/10] Batch [850/5004] Loss: nan Acc: 0.0006 Stop@: 1.94 LR: 0.000017 Speed: 1.59 batch/s
-Epoch [1/10] Batch [900/5004] Loss: nan Acc: 0.0006 Stop@: 1.89 LR: 0.000018 Speed: 1.59 batch/s
-Epoch [1/10] Batch [950/5004] Loss: nan Acc: 0.0005 Stop@: 1.84 LR: 0.000019 Speed: 1.59 batch/s
-Epoch [1/10] Batch [1000/5004] Loss: nan Acc: 0.0005 Stop@: 1.80 LR: 0.000020 Speed: 1.59 batch/s
-Epoch [1/10] Batch [1050/5004] Loss: nan Acc: 0.0005 Stop@: 1.76 LR: 0.000021 Speed: 1.59 batch/s
-Epoch [1/10] Batch [1100/5004] Loss: nan Acc: 0.0005 Stop@: 1.73 LR: 0.000022 Speed: 1.59 batch/s
-Epoch [1/10] Batch [1150/5004] Loss: nan Acc: 0.0004 Stop@: 1.69 LR: 0.000023 Speed: 1.60 batch/s
-Epoch [1/10] Batch [1200/5004] Loss: nan Acc: 0.0004 Stop@: 1.67 LR: 0.000024 Speed: 1.59 batch/s
-Epoch [1/10] Batch [1250/5004] Loss: nan Acc: 0.0004 Stop@: 1.64 LR: 0.000025 Speed: 1.59 batch/s
-Epoch [1/10] Batch [1300/5004] Loss: nan Acc: 0.0004 Stop@: 1.61 LR: 0.000026 Speed: 1.59 batch/s
-Epoch [1/10] Batch [1350/5004] Loss: nan Acc: 0.0004 Stop@: 1.59 LR: 0.000027 Speed: 1.59 batch/s
-Epoch [1/10] Batch [1400/5004] Loss: nan Acc: 0.0004 Stop@: 1.57 LR: 0.000028 Speed: 1.60 batch/s
-Epoch [1/10] Batch [1450/5004] Loss: nan Acc: 0.0003 Stop@: 1.55 LR: 0.000029 Speed: 1.59 batch/s
-Epoch [1/10] Batch [1500/5004] Loss: nan Acc: 0.0003 Stop@: 1.53 LR: 0.000030 Speed: 1.59 batch/s
-Epoch [1/10] Batch [1550/5004] Loss: nan Acc: 0.0003 Stop@: 1.52 LR: 0.000031 Speed: 1.59 batch/s
 Traceback (most recent call last):
   File "/home/derek_austin/dinov3/dinov3/trm/train.py", line 584, in <module>
     main()
@@ -149,7 +112,7 @@ Traceback (most recent call last):
   File "/home/derek_austin/dinov3/.venv/lib/python3.12/site-packages/torch/utils/data/dataloader.py", line 734, in __next__
     data = self._next_data()
            ^^^^^^^^^^^^^^^^^
-  File "/home/derek_austin/dinov3/.venv/lib/python3.12/site-packages/torch/utils/data/dataloader.py", line 1516, in _next_data
+  File "/home/derek_austin/dinov3/.venv/lib/python3.12/site-packages/torch/utils/data/dataloader.py", line 1489, in _next_data
     return self._process_data(data, worker_id)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/home/derek_austin/dinov3/.venv/lib/python3.12/site-packages/torch/utils/data/dataloader.py", line 1551, in _process_data
@@ -174,7 +137,7 @@ Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
 
 
 [1;34mwandb[0m: 
-[1;34mwandb[0m: 🚀 View run [33mtrm_imagenet[0m at: [34m[0m
+[1;34mwandb[0m: 🚀 View run [33mmlp_imagenet[0m at: [34m[0m
 Exception in thread Thread-3 (_pin_memory_loop):
 socket.send() raised exception.
 Exception ignored in atexit callbackException ignored in sys.unraisablehook
