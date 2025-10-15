@@ -149,6 +149,20 @@ class TRM(torch.nn.Module):
         cls_logits = self.cls_head(y_latent)
         q_logits = self.q_head(y_latent)
         return y_latent.detach(), z_latent.detach(), cls_logits, q_logits
+    
+    def check_if_grads_are_nan(self):
+        for param in self.net.parameters():
+            if param.grad is not None:
+                if torch.isnan(param.grad).any():
+                    return True
+        return False
+    
+    def check_if_weights_are_nan(self):
+        for param in self.net.parameters():
+            if param is not None:
+                if torch.isnan(param).any():
+                    return True
+        return False
         
     def forward(self, x: torch.Tensor, y_true: torch.Tensor, optimizer: torch.optim.Optimizer, scaler=None) -> dict:
         """
@@ -193,6 +207,9 @@ class TRM(torch.nn.Module):
             cls_loss = F.cross_entropy(cls_logits, y_true)
             q_loss = F.binary_cross_entropy_with_logits(q_logits.squeeze(-1), (y_hat == y_true).float())
             loss = cls_loss + q_loss
+            print("Loss has nan", torch.isnan(loss).any())
+            print("Grads have nan", self.check_if_grads_are_nan())
+            print("weights have nan", self.check_if_weights_are_nan())
 
             # Update weights
             optimizer.zero_grad()
@@ -200,6 +217,7 @@ class TRM(torch.nn.Module):
             if scaler is not None:
                 # Use gradient scaling for AMP
                 scaler.scale(loss).backward()
+                print("grads have nan after loss.backward()", self.check_if_grads_are_nan())
 
                 # Clip gradients if specified (unscale first)
                 if self.grad_clip is not None and self.grad_clip > 0:
@@ -211,12 +229,16 @@ class TRM(torch.nn.Module):
             else:
                 # Standard backward pass without AMP
                 loss.backward()
+                print("grads have nan after loss.backward()", self.check_if_grads_are_nan())
 
                 # Clip gradients if specified
                 if self.grad_clip is not None and self.grad_clip > 0:
                     torch.nn.utils.clip_grad_norm_(self.parameters(), self.grad_clip)
 
                 optimizer.step()
+            print("grads have nan after optimizer.step()", self.check_if_grads_are_nan())
+            print("weights have nan", self.check_if_weights_are_nan())
+            print()
             total_loss += loss.item()
 
             # Track accuracy on final layer

@@ -1,49 +1,20 @@
-# python train.py \
-#     --data-root /home/derek_austin/dinov3/imagenet \
-#     --num-workers 12 \
-#     --resolution 512 \
-#     --backbone vit_small \
-#     --backbone-checkpoint /home/derek_austin/dinov3/pretrained_checkpoints/dinov3_vits16_pretrain.pth \
-#     --freeze-backbone \
-#     --activation swiglu \
-#     --latent-z-dim 256 \
-#     --latent-y-dim 256 \
-#     --hidden-dim-multiplier 1.0 \
-#     --n-supervision 4 \
-#     --n-latent-reasoning-steps 3 \
-#     --t-recursion-steps 2 \
-#     --epochs 10 \
-#     --batch-size 256 \
-#     --eval-batch-size 256 \
-#     --lr 1e-4 \
-#     --weight-decay 0.0 \
-#     --optimizer adamw \
-#     --warmup-epochs 1 \
-#     --grad-clip 1.0 \
-#     --save-dir ./checkpoints \
-#     --experiment-name trm_imagenet \
-#     --save-freq 2 \
-#     --eval-freq 1 \
-#     --log-interval 50 \
-#     --use-wandb \
-#     --wandb-project trm-imagenet \
-#     --device cuda \
-#     --seed 42 \
-#     --amp \
-#     --images_dtype bfloat16 > train_trm.log 2>&1;
-
 export CUDA_LAUNCH_BLOCKING=1
 export TORCH_USE_CUDA_DSA=1
+
 python train.py \
     --data-root /home/derek_austin/dinov3/imagenet \
-    --num-workers 14 \
+    --num-workers 12 \
     --resolution 512 \
     --backbone vit_small \
     --backbone-checkpoint /home/derek_austin/dinov3/pretrained_checkpoints/dinov3_vits16_pretrain.pth \
     --freeze-backbone \
     --activation swiglu \
-    --use-simple-mlp \
-    --mlp-num-layers 1 \
+    --latent-z-dim 256 \
+    --latent-y-dim 256 \
+    --hidden-dim-multiplier 1.0 \
+    --n-supervision 4 \
+    --n-latent-reasoning-steps 3 \
+    --t-recursion-steps 2 \
     --epochs 10 \
     --batch-size 256 \
     --eval-batch-size 256 \
@@ -53,13 +24,43 @@ python train.py \
     --warmup-epochs 1 \
     --grad-clip 1.0 \
     --save-dir ./checkpoints \
-    --experiment-name mlp_imagenet \
+    --experiment-name trm_imagenet \
     --save-freq 2 \
     --eval-freq 1 \
     --log-interval 50 \
-    --use-wandb \
     --wandb-project trm-imagenet \
     --device cuda \
     --seed 42 \
     --amp \
-    --images_dtype bfloat16;
+    --images_dtype float32 > train_trm2.log 2>&1;
+    # --use-wandb \
+
+# python train.py \
+#     --data-root /home/derek_austin/dinov3/imagenet \
+#     --num-workers 14 \
+#     --resolution 512 \
+#     --backbone vit_small \
+#     --backbone-checkpoint /home/derek_austin/dinov3/pretrained_checkpoints/dinov3_vits16_pretrain.pth \
+#     --freeze-backbone \
+#     --activation swiglu \
+#     --use-simple-mlp \
+#     --mlp-num-layers 1 \
+#     --epochs 10 \
+#     --batch-size 256 \
+#     --eval-batch-size 256 \
+#     --lr 1e-4 \
+#     --weight-decay 0.0 \
+#     --optimizer adamw \
+#     --warmup-epochs 1 \
+#     --grad-clip 1.0 \
+#     --save-dir ./checkpoints \
+#     --experiment-name mlp_imagenet \
+#     --save-freq 2 \
+#     --eval-freq 1 \
+#     --log-interval 50 \
+#     --use-wandb \
+#     --wandb-project trm-imagenet \
+#     --device cuda \
+#     --seed 42 \
+#     --amp \
+#     --images_dtype bfloat16;

@@ -87,7 +87,7 @@ def get_data_loaders(args):
         batch_size=args.batch_size,
         shuffle=True,
         num_workers=args.num_workers,
-        pin_memory=args.pin_memory,
+        # pin_memory=args.pin_memory,
         drop_last=True,
         collate_fn=collate_fn,
     )
@@ -97,7 +97,7 @@ def get_data_loaders(args):
         batch_size=args.eval_batch_size,
         shuffle=False,
         num_workers=args.num_workers,
-        pin_memory=args.pin_memory,
+        # pin_memory=args.pin_memory,
         drop_last=False,
         collate_fn=collate_fn,
     )
@@ -506,6 +506,8 @@ def main():
     # Watch model with wandb
     if args.use_wandb and WANDB_AVAILABLE:
         wandb_logger.watch(model, log='all', log_freq=args.log_interval)
+    else:
+        wandb_logger = None
 
     # Build optimizer
     print("\nBuilding optimizer...")
