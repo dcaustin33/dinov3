@@ -32,8 +32,8 @@ python train.py \
     --device cuda \
     --seed 42 \
     --amp \
-    --images_dtype float32 > train_trm2.log 2>&1;
-    # --use-wandb \
+    --use-wandb \
+    --images_dtype float32 2>&1 | tee train_trm2.log
 
 # python train.py \
 #     --data-root /home/derek_austin/dinov3/imagenet \

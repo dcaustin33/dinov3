@@ -33,6 +33,15 @@ def trunc_normal_init_(tensor: torch.Tensor, std: float = 1.0, lower: float = -2
 
     return tensor
 
+def rms_norm(hidden_states: torch.Tensor, variance_epsilon: float = 1e-5) -> torch.Tensor:
+    input_dtype = hidden_states.dtype
+    hidden_states = hidden_states.to(torch.float32)
+
+    variance = hidden_states.square().mean(-1, keepdim=True)
+    hidden_states = hidden_states * torch.rsqrt(variance + variance_epsilon)
+    return hidden_states.to(input_dtype)
+
+
 class SwiGLU(nn.Module):
     def __init__(self, hidden_size: int, expansion: float=2.0):
         super().__init__()
@@ -133,19 +142,29 @@ class TRM(torch.nn.Module):
         for _ in range(self.n_latent_reasoning_steps):
             output_tensor = self.net(input_tensor)
             input_tensor = output_tensor + input_tensor
+            input_tensor = rms_norm(input_tensor)
         y = output_tensor[:, x_dim:x_dim+y_latent_dim]
         z = output_tensor[:, x_dim+y_latent_dim:x_dim+y_latent_dim+z_latent_dim]
         return y, z
     
-    def deep_recursion(self, x: torch.Tensor, y_latent: torch.Tensor, z_latent: torch.Tensor):
+    def deep_recursion(
+        self, 
+        x: torch.Tensor, 
+        y_latent: torch.Tensor, 
+        z_latent: torch.Tensor, 
+        y_original_embedding: torch.Tensor, 
+        z_original_embedding: torch.Tensor
+    ):
         # Don't modify y_latent and z_latent in place within no_grad
+        y_embedding = y_original_embedding.repeat(x.shape[0], 1)
+        z_embedding = z_original_embedding.repeat(x.shape[0], 1)
         for _ in range(self.t_recursion_steps - 1):
             self.net.requires_grad_(False)
-            y_latent_new, z_latent_new = self.latent_recursion(x, y_latent.detach(), z_latent.detach())
+            y_latent_new, z_latent_new = self.latent_recursion(x, y_latent.detach() + y_embedding, z_latent.detach() + z_embedding)
             self.net.requires_grad_(True)
             y_latent = y_latent_new
             z_latent = z_latent_new
-        y_latent, z_latent = self.latent_recursion(x, y_latent, z_latent)
+        y_latent, z_latent = self.latent_recursion(x, y_latent + y_embedding, z_latent + z_embedding)
         cls_logits = self.cls_head(y_latent)
         q_logits = self.q_head(y_latent)
         return y_latent.detach(), z_latent.detach(), cls_logits, q_logits
@@ -185,6 +204,8 @@ class TRM(torch.nn.Module):
         batch_size = x.shape[0]
         y_latent = self.latent_y_embedding.repeat(batch_size, 1)
         z_latent = self.latent_z_embedding.repeat(batch_size, 1)
+        y_original_embedding = self.latent_y_embedding
+        z_original_embedding =self.latent_y_embedding
 
         total_loss = 0.0
         samples_per_layer = []
@@ -195,21 +216,28 @@ class TRM(torch.nn.Module):
         # Keep original indices to track stopping layers
         original_indices = torch.arange(batch_size, device=x.device)
         weights_before = self.net[0][0].weight.clone()
+        previous_layer_y_latent = y_latent.clone()
+        previous_layer_z_latent = z_latent.clone()
 
         for step in range(self.n_supervision):
             current_batch_size = x.shape[0]
             samples_per_layer.append(current_batch_size)
 
-            y_latent, z_latent, cls_logits, q_logits = self.deep_recursion(x, y_latent, z_latent)
+            y_latent, z_latent, cls_logits, q_logits = self.deep_recursion(
+                x, previous_layer_y_latent, previous_layer_z_latent, y_original_embedding, z_original_embedding
+            )
             y_hat = torch.argmax(cls_logits, dim=-1)
 
             # Compute losses
             cls_loss = F.cross_entropy(cls_logits, y_true)
             q_loss = F.binary_cross_entropy_with_logits(q_logits.squeeze(-1), (y_hat == y_true).float())
             loss = cls_loss + q_loss
-            print("Loss has nan", torch.isnan(loss).any())
-            print("Grads have nan", self.check_if_grads_are_nan())
-            print("weights have nan", self.check_if_weights_are_nan())
+            # print("step", step)
+            # print("Loss has nan", torch.isnan(loss).any())
+            # print("Grads have nan", self.check_if_grads_are_nan())
+            # print("weights have nan", self.check_if_weights_are_nan())
+            if self.check_if_grads_are_nan() or self.check_if_weights_are_nan():
+                import pdb; pdb.set_trace()
 
             # Update weights
             optimizer.zero_grad()
@@ -217,7 +245,6 @@ class TRM(torch.nn.Module):
             if scaler is not None:
                 # Use gradient scaling for AMP
                 scaler.scale(loss).backward()
-                print("grads have nan after loss.backward()", self.check_if_grads_are_nan())
 
                 # Clip gradients if specified (unscale first)
                 if self.grad_clip is not None and self.grad_clip > 0:
@@ -229,16 +256,17 @@ class TRM(torch.nn.Module):
             else:
                 # Standard backward pass without AMP
                 loss.backward()
-                print("grads have nan after loss.backward()", self.check_if_grads_are_nan())
+                # print("grads have nan after loss.backward()", self.check_if_grads_are_nan())
+                if self.check_if_grads_are_nan() or self.check_if_weights_are_nan():
+                    import pdb; pdb.set_trace()
 
                 # Clip gradients if specified
                 if self.grad_clip is not None and self.grad_clip > 0:
                     torch.nn.utils.clip_grad_norm_(self.parameters(), self.grad_clip)
 
                 optimizer.step()
-            print("grads have nan after optimizer.step()", self.check_if_grads_are_nan())
-            print("weights have nan", self.check_if_weights_are_nan())
-            print()
+            # print("grads have nan after optimizer.step()", self.check_if_grads_are_nan())
+            # print("weights have nan", self.check_if_weights_are_nan())
             total_loss += loss.item()
 
             # Track accuracy on final layer
@@ -269,6 +297,8 @@ class TRM(torch.nn.Module):
                 # Last layer - mark remaining samples
                 if not stopped_mask[original_indices].all():
                     stopping_layers[original_indices[~stopped_mask[original_indices]]] = step + 1
+            previous_layer_y_latent = y_latent.clone()
+            previous_layer_z_latent = z_latent.clone()
 
         avg_stopping_layer = stopping_layers.float().mean().item() if batch_size > 0 else 0.0
 
