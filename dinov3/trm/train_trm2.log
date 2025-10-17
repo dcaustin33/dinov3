@@ -1,0 +1,98 @@
+/home/derek_austin/dinov3/.venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:2249: UnsupportedFieldAttributeWarning: The 'repr' attribute with value False was provided to the `Field()` function, which has no effect in the context it was used. 'repr' is field-specific metadata, and can only be attached to a model field using `Annotated` metadata or by assignment. This may have happened because an `Annotated` type alias using the `type` statement was used, or if the `Field()` function was attached to a single member of a union type.
+  warnings.warn(
+/home/derek_austin/dinov3/.venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:2249: UnsupportedFieldAttributeWarning: The 'frozen' attribute with value True was provided to the `Field()` function, which has no effect in the context it was used. 'frozen' is field-specific metadata, and can only be attached to a model field using `Annotated` metadata or by assignment. This may have happened because an `Annotated` type alias using the `type` statement was used, or if the `Field()` function was attached to a single member of a union type.
+  warnings.warn(
+wandb: Currently logged in as: dcaustin33 to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.22.2
+wandb: Run data is saved locally in checkpoints/trm_imagenet/wandb/run-20251017_163241-0os0alos
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run trm_imagenet
+wandb: ⭐️ View project at https://wandb.ai/dcaustin33/trm-imagenet
+wandb: 🚀 View run at https://wandb.ai/dcaustin33/trm-imagenet/runs/0os0alos
+
+================================================================================
+Training Configuration
+================================================================================
+  activation: swiglu
+  amp: True
+  backbone: vit_small
+  backbone_checkpoint: /home/derek_austin/dinov3/pretrained_checkpoints/dinov3_vits16_pretrain.pth
+  batch_size: 256
+  data_root: /home/derek_austin/dinov3/imagenet
+  dataset: imagenet
+  device: cuda
+  epochs: 10
+  eval_batch_size: 256
+  eval_freq: 1
+  experiment_name: trm_imagenet
+  freeze_backbone: True
+  grad_clip: 1.0
+  hidden_dim_multiplier: 1.0
+  images_dtype: torch.float32
+  latent_y_dim: 256
+  latent_z_dim: 256
+  learning_rate: 0.0001
+  log_interval: 50
+  mlp_num_layers: 2
+  momentum: 0.9
+  n_latent_reasoning_steps: 3
+  n_supervision: 4
+  num_classes: 1000
+  num_workers: 12
+  optimizer: adamw
+  patch_size: 14
+  pin_memory: True
+  resolution: 512
+  resume: None
+  save_dir: ./checkpoints
+  save_freq: 2
+  save_path: checkpoints/trm_imagenet
+  seed: 42
+  t_recursion_steps: 2
+  use_simple_mlp: False
+  use_wandb: True
+  wandb_entity: None
+  wandb_project: trm-imagenet
+  warmup_epochs: 1
+  weight_decay: 0.0
+================================================================================
+
+Saved configuration to checkpoints/trm_imagenet/config.json
+
+Creating data loaders...
+[Warning] Custom resolution 512 used instead of default 448 (for 1024 tokens).
+Loading ImageNet dataset from /home/derek_austin/dinov3/imagenet
+Train dataset: 1281167 images
+Val dataset: 50000 images
+Train batches: 5004
+Val batches: 196
+
+Building model...
+Loading backbone checkpoint from /home/derek_austin/dinov3/pretrained_checkpoints/dinov3_vits16_pretrain.pth
+Freezing backbone parameters
+Using TRM classifier with 4 supervision steps
+Total parameters: 30,344,832
+Trainable parameters: 8,743,680
+
+Building optimizer...
+Optimizing only TRM parameters (backbone frozen)
+latent_y_embedding torch.Size([1, 256])
+latent_z_embedding torch.Size([1, 256])
+cls_head.weight torch.Size([1000, 256])
+q_head.weight torch.Size([1, 256])
+net.0.0.weight torch.Size([896, 896])
+net.0.1.gate_up_proj.weight torch.Size([2560, 896])
+net.0.1.down_proj.weight torch.Size([896, 1280])
+net.1.0.weight torch.Size([896, 896])
+net.1.1.gate_up_proj.weight torch.Size([2560, 896])
+net.1.1.down_proj.weight torch.Size([896, 1280])
+Gradient clipping enabled with max norm: 1.0
+Using warmup for 1 epochs + cosine decay
+
+================================================================================
+Starting Training
+================================================================================
+
+
+Epoch 1/10
+--------------------------------------------------------------------------------

@@ -483,9 +483,6 @@ def main():
                 dir=str(args.save_path),
                 resume='allow' if args.resume else None,
             )
-            print(f"Initialized wandb: {wandb_logger.run.name}")
-            print(f"  Project: {args.wandb_project}")
-            print(f"  URL: {wandb_logger.run.url}\n")
 
     # Create data loaders
     print("Creating data loaders...")
