@@ -205,7 +205,7 @@ class TRM(torch.nn.Module):
         y_latent = self.latent_y_embedding.repeat(batch_size, 1)
         z_latent = self.latent_z_embedding.repeat(batch_size, 1)
         y_original_embedding = self.latent_y_embedding
-        z_original_embedding =self.latent_y_embedding
+        z_original_embedding =self.latent_z_embedding
 
         total_loss = 0.0
         samples_per_layer = []
@@ -224,7 +224,7 @@ class TRM(torch.nn.Module):
             samples_per_layer.append(current_batch_size)
 
             y_latent, z_latent, cls_logits, q_logits = self.deep_recursion(
-                x, previous_layer_y_latent, previous_layer_z_latent, y_original_embedding, z_original_embedding
+                x, y_latent.clone(), z_latent.clone(), y_original_embedding, z_original_embedding
             )
             y_hat = torch.argmax(cls_logits, dim=-1)
 
@@ -297,8 +297,6 @@ class TRM(torch.nn.Module):
                 # Last layer - mark remaining samples
                 if not stopped_mask[original_indices].all():
                     stopping_layers[original_indices[~stopped_mask[original_indices]]] = step + 1
-            previous_layer_y_latent = y_latent.clone()
-            previous_layer_z_latent = z_latent.clone()
 
         avg_stopping_layer = stopping_layers.float().mean().item() if batch_size > 0 else 0.0
 
@@ -336,6 +334,10 @@ class TRM(torch.nn.Module):
         batch_size = x.shape[0]
         y_latent = self.latent_y_embedding.repeat(batch_size, 1)
         z_latent = self.latent_z_embedding.repeat(batch_size, 1)
+        y_latent = self.latent_y_embedding.repeat(batch_size, 1)
+        z_latent = self.latent_z_embedding.repeat(batch_size, 1)
+        y_original_embedding = self.latent_y_embedding
+        z_original_embedding = self.latent_z_embedding
 
         # Tracking structures
         total_loss = 0.0
@@ -355,13 +357,14 @@ class TRM(torch.nn.Module):
             current_batch_size = x.shape[0]
             samples_per_layer.append(current_batch_size)
 
-            (y_latent, z_latent), cls_logits, q_logits = self.deep_recursion(x, y_latent, z_latent)
+            y_latent, z_latent, cls_logits, q_logits = self.deep_recursion(
+                x, y_latent.clone(), z_latent.clone(), y_original_embedding, z_original_embedding
+            )
             y_hat = torch.argmax(cls_logits, dim=-1)
 
             # Compute losses and accuracy for this layer
             cls_loss = F.cross_entropy(cls_logits, y_true)
             q_loss = F.binary_cross_entropy_with_logits(q_logits.squeeze(-1), (y_hat == y_true).float())
-            print("cls_loss", cls_loss.item(), "q_loss", q_loss.item())
             loss = cls_loss + q_loss
 
             total_loss += loss.item()
