@@ -74,6 +74,8 @@ def get_data_loaders(args):
     # Apply transforms
     train_dataset = train_dataset.with_transform(train_transforms)
     val_dataset = val_dataset.with_transform(val_transforms)
+    train_dataset = train_dataset
+    val_dataset = val_dataset
 
     # Define collate function for HuggingFace datasets
     def collate_fn(examples):

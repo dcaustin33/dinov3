@@ -33,7 +33,7 @@ python train.py \
     --seed 42 \
     --amp \
     --use-wandb \
-    --images_dtype float32 2>&1 | tee train_trm2.log
+    --images_dtype bfloat16; 2>&1 | tee train_trm2.log
 
 # python train.py \
 #     --data-root /home/derek_austin/dinov3/imagenet \
