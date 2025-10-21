@@ -213,6 +213,10 @@ class TRM(torch.nn.Module):
         stopping_layers = torch.zeros(batch_size, device=x.device)
         stopped_mask = torch.zeros(batch_size, dtype=torch.bool, device=x.device)
 
+        # Track predictions for all samples to compute final accuracy
+        final_predictions = torch.zeros(batch_size, dtype=torch.long, device=x.device)
+        y_true_all = y_true.clone()
+
         # Keep original indices to track stopping layers
         original_indices = torch.arange(batch_size, device=x.device)
         weights_before = self.net[0][0].weight.clone()
@@ -228,14 +232,13 @@ class TRM(torch.nn.Module):
             )
             y_hat = torch.argmax(cls_logits, dim=-1)
 
+            # Store predictions for all current samples
+            final_predictions[original_indices] = y_hat
+
             # Compute losses
             cls_loss = F.cross_entropy(cls_logits, y_true)
             q_loss = F.binary_cross_entropy_with_logits(q_logits.squeeze(-1), (y_hat == y_true).float())
             loss = cls_loss + q_loss
-            # print("step", step)
-            # print("Loss has nan", torch.isnan(loss).any())
-            # print("Grads have nan", self.check_if_grads_are_nan())
-            # print("weights have nan", self.check_if_weights_are_nan())
             if self.check_if_grads_are_nan() or self.check_if_weights_are_nan():
                 import pdb; pdb.set_trace()
 
@@ -256,9 +259,6 @@ class TRM(torch.nn.Module):
             else:
                 # Standard backward pass without AMP
                 loss.backward()
-                # print("grads have nan after loss.backward()", self.check_if_grads_are_nan())
-                if self.check_if_grads_are_nan() or self.check_if_weights_are_nan():
-                    import pdb; pdb.set_trace()
 
                 # Clip gradients if specified
                 if self.grad_clip is not None and self.grad_clip > 0:
@@ -268,10 +268,6 @@ class TRM(torch.nn.Module):
             # print("grads have nan after optimizer.step()", self.check_if_grads_are_nan())
             # print("weights have nan", self.check_if_weights_are_nan())
             total_loss += loss.item()
-
-            # Track accuracy on final layer
-            if step == self.n_supervision - 1:
-                final_accuracy = (y_hat == y_true).float().mean().item()
 
             # Filter samples based on confidence threshold
             if step < self.n_supervision - 1:
@@ -298,6 +294,8 @@ class TRM(torch.nn.Module):
                 if not stopped_mask[original_indices].all():
                     stopping_layers[original_indices[~stopped_mask[original_indices]]] = step + 1
 
+        # Compute final accuracy using all samples
+        final_accuracy = (final_predictions == y_true_all).float().mean().item()
         avg_stopping_layer = stopping_layers.float().mean().item() if batch_size > 0 else 0.0
 
         return {

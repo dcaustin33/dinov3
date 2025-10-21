@@ -74,8 +74,8 @@ def get_data_loaders(args):
     # Apply transforms
     train_dataset = train_dataset.with_transform(train_transforms)
     val_dataset = val_dataset.with_transform(val_transforms)
-    train_dataset = train_dataset
-    val_dataset = val_dataset
+    train_dataset = train_dataset.select(random.sample(range(len(train_dataset)), 100000))
+    val_dataset = val_dataset.select(random.sample(range(len(val_dataset)), 10000))
 
     # Define collate function for HuggingFace datasets
     def collate_fn(examples):
@@ -359,6 +359,7 @@ def validate(model, val_loader, epoch, args, wandb_logger):
     print(f"{'='*80}\n")
 
     # Log to wandb
+    import pdb; pdb.set_trace()
     if wandb_logger is not None:
         wandb_log = {
             'val/loss': avg_loss,
@@ -501,12 +502,6 @@ def main():
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Total parameters: {total_params:,}")
     print(f"Trainable parameters: {trainable_params:,}")
-
-    # Watch model with wandb
-    if args.use_wandb and WANDB_AVAILABLE:
-        wandb_logger.watch(model, log='all', log_freq=args.log_interval)
-    else:
-        wandb_logger = None
 
     # Build optimizer
     print("\nBuilding optimizer...")
