@@ -263,6 +263,15 @@ def train_epoch(model, train_loader, optimizer, scheduler, epoch, args, scaler=N
             # Log to wandb
             if wandb_logger is not None:
                 global_step = (epoch - 1) * len(train_loader) + batch_idx + 1
+                print("TRAIN WANDB LOG")
+                print({
+                    'train/batch_loss': avg_loss,
+                    'train/batch_accuracy': avg_acc,
+                    'train/batch_stopping_layer': avg_stop,
+                    'train/learning_rate': current_lr,
+                    'train/batches_per_sec': batches_per_sec,
+                    'epoch': epoch,
+                })
                 wandb_logger.log({
                     'train/batch_loss': avg_loss,
                     'train/batch_accuracy': avg_acc,

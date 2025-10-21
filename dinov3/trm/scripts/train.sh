@@ -12,7 +12,7 @@ python train.py \
     --latent-z-dim 256 \
     --latent-y-dim 256 \
     --hidden-dim-multiplier 1.0 \
-    --n-supervision 1 \
+    --n-supervision 4 \
     --n-latent-reasoning-steps 3 \
     --t-recursion-steps 2 \
     --epochs 10 \
@@ -24,7 +24,7 @@ python train.py \
     --warmup-epochs 1 \
     --grad-clip 1.0 \
     --save-dir ./checkpoints \
-    --experiment-name trm_imagenet \
+    --experiment-name trm_imagenet2 \
     --save-freq 2 \
     --eval-freq 1 \
     --log-interval 50 \
@@ -33,7 +33,7 @@ python train.py \
     --seed 42 \
     --amp \
     --use-wandb \
-    --images_dtype bfloat16; 2>&1 | tee train_trm2.log
+    --images_dtype bfloat16 2>&1 | tee train_trm2.log
 
 # python train.py \
 #     --data-root /home/derek_austin/dinov3/imagenet \
