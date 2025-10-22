@@ -74,8 +74,8 @@ def get_data_loaders(args):
     # Apply transforms
     train_dataset = train_dataset.with_transform(train_transforms)
     val_dataset = val_dataset.with_transform(val_transforms)
-    train_dataset = train_dataset.select(random.sample(range(len(train_dataset)), 100000))
-    val_dataset = val_dataset.select(random.sample(range(len(val_dataset)), 10000))
+    # train_dataset = train_dataset.select(random.sample(range(len(train_dataset)), 100000))
+    # val_dataset = val_dataset.select(random.sample(range(len(val_dataset)), 10000))
 
     # Define collate function for HuggingFace datasets
     def collate_fn(examples):
@@ -292,7 +292,7 @@ def train_epoch(model, train_loader, optimizer, scheduler, epoch, args, scaler=N
 
 
 @torch.no_grad()
-def validate(model, val_loader, epoch, args, wandb_logger):
+def validate(model, val_loader, epoch, args, wandb_logger, global_step):
     """
     Validate on validation set.
 
@@ -368,7 +368,6 @@ def validate(model, val_loader, epoch, args, wandb_logger):
     print(f"{'='*80}\n")
 
     # Log to wandb
-    import pdb; pdb.set_trace()
     if wandb_logger is not None:
         wandb_log = {
             'val/loss': avg_loss,
@@ -386,7 +385,7 @@ def validate(model, val_loader, epoch, args, wandb_logger):
         for layer_idx, count in enumerate(stopping_distribution):
             wandb_log[f'val/stopping_at_layer_{layer_idx + 1}'] = count
 
-        wandb_logger.log(wandb_log, step=epoch)
+        wandb_logger.log(wandb_log, step=global_step)
 
     return val_metrics
 
@@ -562,7 +561,7 @@ def main():
 
         # Validate
         if epoch % args.eval_freq == 0:
-            val_metrics = validate(model, val_loader, epoch, args, wandb_logger)
+            val_metrics = validate(model, val_loader, epoch, args, wandb_logger, len(train_loader) * (epoch))
 
             # Check if best model
             current_acc = val_metrics['val/accuracy']

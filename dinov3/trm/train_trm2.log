@@ -96,3 +96,45 @@ Starting Training
 
 Epoch 1/10
 --------------------------------------------------------------------------------
+Epoch [1/10] Batch [50/390] Loss: 7.5690 Acc: 0.0008 Stop@: 2.34 LR: 0.000001 Speed: 0.93 batch/s
+TRAIN WANDB LOG
+{'train/batch_loss': 7.569037144184112, 'train/batch_accuracy': 0.00078125, 'train/batch_stopping_layer': 2.33953125, 'train/learning_rate': 1.282051282051282e-06, 'train/batches_per_sec': 0.9252802874339671, 'epoch': 1}
+Epoch [1/10] Batch [100/390] Loss: 7.5547 Acc: 0.0009 Stop@: 2.57 LR: 0.000003 Speed: 1.05 batch/s
+TRAIN WANDB LOG
+{'train/batch_loss': 7.5546947193145755, 'train/batch_accuracy': 0.000859375, 'train/batch_stopping_layer': 2.5670703125, 'train/learning_rate': 2.564102564102564e-06, 'train/batches_per_sec': 1.0452169236594202, 'epoch': 1}
+Epoch [1/10] Batch [150/390] Loss: 7.5289 Acc: 0.0010 Stop@: 2.90 LR: 0.000004 Speed: 1.09 batch/s
+TRAIN WANDB LOG
+{'train/batch_loss': 7.528893453280131, 'train/batch_accuracy': 0.0009895833333333334, 'train/batch_stopping_layer': 2.8973697916666667, 'train/learning_rate': 3.846153846153847e-06, 'train/batches_per_sec': 1.092280898555805, 'epoch': 1}
+Epoch [1/10] Batch [200/390] Loss: 7.4825 Acc: 0.0012 Stop@: 3.16 LR: 0.000005 Speed: 1.12 batch/s
+TRAIN WANDB LOG
+{'train/batch_loss': 7.482532829642296, 'train/batch_accuracy': 0.00119140625, 'train/batch_stopping_layer': 3.1639453125, 'train/learning_rate': 5.128205128205128e-06, 'train/batches_per_sec': 1.118633543876254, 'epoch': 1}
+Epoch [1/10] Batch [250/390] Loss: 7.4078 Acc: 0.0012 Stop@: 3.33 LR: 0.000006 Speed: 1.13 batch/s
+TRAIN WANDB LOG
+{'train/batch_loss': 7.407751530170441, 'train/batch_accuracy': 0.00121875, 'train/batch_stopping_layer': 3.331015625, 'train/learning_rate': 6.410256410256412e-06, 'train/batches_per_sec': 1.1338310994621146, 'epoch': 1}
+Epoch [1/10] Batch [300/390] Loss: 7.3362 Acc: 0.0014 Stop@: 3.44 LR: 0.000008 Speed: 1.14 batch/s
+TRAIN WANDB LOG
+{'train/batch_loss': 7.336222469011942, 'train/batch_accuracy': 0.0014192708333333334, 'train/batch_stopping_layer': 3.442513020833333, 'train/learning_rate': 7.692307692307694e-06, 'train/batches_per_sec': 1.1430591499093317, 'epoch': 1}
+Epoch [1/10] Batch [350/390] Loss: 7.2751 Acc: 0.0019 Stop@: 3.52 LR: 0.000009 Speed: 1.15 batch/s
+TRAIN WANDB LOG
+{'train/batch_loss': 7.275146670341492, 'train/batch_accuracy': 0.0018973214285714286, 'train/batch_stopping_layer': 3.522154017857143, 'train/learning_rate': 8.974358974358976e-06, 'train/batches_per_sec': 1.1493833911482403, 'epoch': 1}
+wandb: WARNING Tried to log to step 1 that is less than the current step 350. Steps must be monotonically increasing, so this data will be ignored. See https://wandb.me/define-metric to log data out of order.
+
+================================================================================
+Validation Results - Epoch 1
+  Loss: 6.8434
+  Accuracy: 0.0135
+  Avg Stopping Layer: 4.00
+  Layer Accuracies: ['0.015', '0.013', '0.011', '0.013']
+  Stopping Distribution: [0, 0, 0, 10000]
+  Time: 70.01s
+================================================================================
+
+> /home/derek_austin/dinov3/dinov3/trm/train.py(372)validate()
+-> if wandb_logger is not None:
+(Pdb) <wandb.sdk.wandb_run.Run object at 0x7fe700058f80>
+(Pdb) New best accuracy: 0.0135
+Saved checkpoint to checkpoints/trm_imagenet2/checkpoint_epoch_1.pth
+Saved best checkpoint to checkpoints/trm_imagenet2/checkpoint_best.pth
+
+Epoch 2/10
+--------------------------------------------------------------------------------
