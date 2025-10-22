@@ -24,7 +24,7 @@ python train.py \
     --warmup-epochs 1 \
     --grad-clip 1.0 \
     --save-dir ./checkpoints \
-    --experiment-name trm_imagenet2 \
+    --experiment-name trm_imagenet_1_1_1 \
     --save-freq 2 \
     --eval-freq 1 \
     --log-interval 50 \
