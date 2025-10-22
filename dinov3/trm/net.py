@@ -199,7 +199,8 @@ class TRM(torch.nn.Module):
                 )
             return None, None, None, None, None, False
 
-        continue_mask = q_logits.squeeze(-1) <= 0.0
+        q_logit_prob = torch.sigmoid(q_logits.squeeze(-1))
+        continue_mask = q_logit_prob <= 0.75
         stop_mask = ~continue_mask
 
         # Record stopping layer for samples that stop here
@@ -363,6 +364,8 @@ class TRM(torch.nn.Module):
         samples_per_layer = []
         stopping_layers = torch.zeros(batch_size, device=x.device)
         stopped_mask = torch.zeros(batch_size, dtype=torch.bool, device=x.device)
+        final_predictions = torch.zeros(batch_size, dtype=torch.long, device=x.device)
+        y_true_all = y_true.clone()
         all_confidences = []
         correct_confidences = []
         incorrect_confidences = []
@@ -379,6 +382,7 @@ class TRM(torch.nn.Module):
                 self.latent_z_embedding,
             )
             y_hat = torch.argmax(cls_logits, dim=-1)
+            final_predictions[original_indices] = y_hat
 
             loss = self._compute_losses(cls_logits, y_hat, y_true, q_logits)
             total_loss += loss.item()
@@ -411,6 +415,14 @@ class TRM(torch.nn.Module):
             if not should_continue:
                 break
 
+        # Pad layer-based metrics if loop terminated early
+        steps_completed = len(layer_accuracies)
+        if steps_completed < self.n_supervision:
+            # Append 1.0 (100% accuracy) for remaining steps since no samples reached them
+            for _ in range(self.n_supervision - steps_completed):
+                layer_accuracies.append(1.0)
+                layer_losses.append(0.0)
+
         # Compute stopping distribution
         stopping_distribution = []
         for layer_idx in range(1, self.n_supervision + 1):
@@ -421,10 +433,13 @@ class TRM(torch.nn.Module):
             stopping_layers.float().mean().item() if batch_size > 0 else 0.0
         )
 
+        # Compute final accuracy using all samples
+        final_accuracy = (final_predictions == y_true_all).float().mean().item()
+
         return {
             "total_loss": total_loss,
             "avg_loss": total_loss / self.n_supervision,
-            "final_accuracy": layer_accuracies[-1] if layer_accuracies else 0.0,
+            "final_accuracy": final_accuracy,
             "layer_accuracies": layer_accuracies,
             "layer_losses": layer_losses,
             "avg_stopping_layer": avg_stopping_layer,

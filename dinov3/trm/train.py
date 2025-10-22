@@ -339,10 +339,16 @@ def validate(model, val_loader, epoch, args, wandb_logger, global_step):
     avg_stopping_layer = sum(all_stopping_layers) / total_samples
 
     # Average layer accuracies across all batches
-    n_layers = len(all_layer_accuracies[0])
+    # Handle edge case where different batches may have different numbers of layers
+    n_layers = max(len(batch_accs) for batch_accs in all_layer_accuracies) if all_layer_accuracies else 0
     avg_layer_accuracies = []
     for layer_idx in range(n_layers):
-        layer_acc = np.mean([batch_accs[layer_idx] for batch_accs in all_layer_accuracies])
+        # Only include batches that have this layer
+        layer_accs = [batch_accs[layer_idx] for batch_accs in all_layer_accuracies if layer_idx < len(batch_accs)]
+        if layer_accs:
+            layer_acc = np.mean(layer_accs)
+        else:
+            layer_acc = 0.0  # No samples reached this layer
         avg_layer_accuracies.append(layer_acc)
 
     # Sum stopping distributions
@@ -350,7 +356,7 @@ def validate(model, val_loader, epoch, args, wandb_logger, global_step):
 
     val_metrics = {
         'val/loss': avg_loss,
-        'val/accuracy': avg_layer_accuracies[-1],  # Final layer accuracy
+        'val/accuracy': metrics['final_accuracy'],  # Final layer accuracy
         'val/avg_stopping_layer': avg_stopping_layer,
         'val/layer_accuracies': avg_layer_accuracies,
         'val/stopping_distribution': stopping_distribution,
@@ -371,7 +377,7 @@ def validate(model, val_loader, epoch, args, wandb_logger, global_step):
     if wandb_logger is not None:
         wandb_log = {
             'val/loss': avg_loss,
-            'val/accuracy': avg_layer_accuracies[-1],
+            'val/accuracy': metrics['final_accuracy'],
             'val/avg_stopping_layer': avg_stopping_layer,
             'val/time_seconds': elapsed,
             'epoch': epoch,
