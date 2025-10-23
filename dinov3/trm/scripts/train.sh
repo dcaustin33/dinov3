@@ -13,8 +13,8 @@ python train.py \
     --latent-y-dim 256 \
     --hidden-dim-multiplier 1.0 \
     --n-supervision 1 \
+    --t-recursion-steps 2 \
     --n-latent-reasoning-steps 1 \
-    --t-recursion-steps 1 \
     --epochs 10 \
     --batch-size 256 \
     --eval-batch-size 256 \
@@ -24,7 +24,7 @@ python train.py \
     --warmup-epochs 1 \
     --grad-clip 1.0 \
     --save-dir ./checkpoints \
-    --experiment-name trm_imagenet_1_1_1 \
+    --experiment-name trm_imagenet_1_2_1 \
     --save-freq 2 \
     --eval-freq 1 \
     --log-interval 50 \

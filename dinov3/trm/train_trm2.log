@@ -3,12 +3,13 @@
 /home/derek_austin/dinov3/.venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:2249: UnsupportedFieldAttributeWarning: The 'frozen' attribute with value True was provided to the `Field()` function, which has no effect in the context it was used. 'frozen' is field-specific metadata, and can only be attached to a model field using `Annotated` metadata or by assignment. This may have happened because an `Annotated` type alias using the `type` statement was used, or if the `Field()` function was attached to a single member of a union type.
   warnings.warn(
 wandb: Currently logged in as: dcaustin33 to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run m8vjptiq
 wandb: Tracking run with wandb version 0.22.2
-wandb: Run data is saved locally in checkpoints/trm_imagenet_1_1_1/wandb/run-20251022_180809-tstiiqsg
+wandb: Run data is saved locally in checkpoints/trm_imagenet_1_2_1/wandb/run-20251023_123556-m8vjptiq
 wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run trm_imagenet_1_1_1
+wandb: Syncing run trm_imagenet_1_2_1
 wandb: ⭐️ View project at https://wandb.ai/dcaustin33/trm-imagenet
-wandb: 🚀 View run at https://wandb.ai/dcaustin33/trm-imagenet/runs/tstiiqsg
+wandb: 🚀 View run at https://wandb.ai/dcaustin33/trm-imagenet/runs/m8vjptiq
 
 ================================================================================
 Training Configuration
@@ -24,7 +25,7 @@ Training Configuration
   epochs: 10
   eval_batch_size: 256
   eval_freq: 1
-  experiment_name: trm_imagenet_1_1_1
+  experiment_name: trm_imagenet_1_2_1
   freeze_backbone: True
   grad_clip: 1.0
   hidden_dim_multiplier: 1.0
@@ -46,9 +47,9 @@ Training Configuration
   resume: None
   save_dir: ./checkpoints
   save_freq: 2
-  save_path: checkpoints/trm_imagenet_1_1_1
+  save_path: checkpoints/trm_imagenet_1_2_1
   seed: 42
-  t_recursion_steps: 1
+  t_recursion_steps: 2
   use_simple_mlp: False
   use_wandb: True
   wandb_entity: None
@@ -57,7 +58,7 @@ Training Configuration
   weight_decay: 0.0
 ================================================================================
 
-Saved configuration to checkpoints/trm_imagenet_1_1_1/config.json
+Saved configuration to checkpoints/trm_imagenet_1_2_1/config.json
 
 Creating data loaders...
 [Warning] Custom resolution 512 used instead of default 448 (for 1024 tokens).
